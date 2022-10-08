@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis
+    volumes:
+      - ./data:/data
+    networks:
+      - store-network
+  counter:
+    build: ./books-counter
+    ports:
+      - 3001:3002
+    environment:
+      # - PORT=3001
+      - REDIS_URL=redis://redis
+    depends_on:
+      - redis
+    networks:
+      - store-network
+  store:
+    build: ./books-store
+    ports:
+      - 3000:3000
+    depends_on:
+      - counter
+    networks:
+      - store-network
+networks:
+  store-network:

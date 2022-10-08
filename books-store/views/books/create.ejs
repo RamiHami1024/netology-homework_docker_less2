@@ -1,0 +1,16 @@
+<%- include("../main/header", {title: title} )%>
+<%- include("../main/menu") %>
+
+<h1>
+    <%= title %>
+</h1>
+
+<div class="row">
+    <div class="col-sm-6">
+
+        <%- include('form'), {title: title} %>
+
+    </div>
+</div>
+
+<%- include("../main/footer") %>
