@@ -5,6 +5,8 @@ const {getData} = require('../middleware/getDataIncrement')
 const fs = require('fs')
 const {v4: uuid} = require('uuid')
 const axios = require('axios')
+const Books = require('../model/books')
+const books = require('../model/books')
 
 router.get('/', (req, res) => {
     res.render('index', {
@@ -20,23 +22,43 @@ router.post('/user/login', (req, res) => {
     res.status(201).json(newUser)
 })
 
-router.get('/books', (req, res) => {
-    res.render('books/index', {
+router.get('/books', async (req, res) => {
+    try {
+        const books = await Books.find()
+
+        res.render('books/index', {
         title: 'Главная',
-        books: store.books
+        books: books
     })
+    } catch(e) {
+        res.status(500).json(e)
+    }
+
+    
 })
 
 router.get('/books/:id', async (req, res) => {
     const {id} = req.params
-    const book = store.books.find(i => i.id === id)
     const data = await getData(id)
 
-    res.render('books/view', {
-        title: book.title,
-        book: book,
-        views: data.message
-    })
+    try {
+        const book = await Books.findById(id)
+
+        res.render(`books/view`, {
+            title: book.title,
+            book: book,
+            views: data.message
+        })
+    } catch(e) {
+        console.log(e)
+        res.status(404).json({code: 404, message: 'Not found'})
+    }
+
+    // res.render('books/view', {
+    //     title: book.title,
+    //     book: book,
+    //     views: data.message
+    // })
 })
 
 router.get('/book/create', (req, res) => {
@@ -46,96 +68,110 @@ router.get('/book/create', (req, res) => {
     })
 })
 
-router.post('/book/create', booksUploader.single('book'), (req, res) => {
-    if (req.file) {
-        const path = req.file.path
-        const fileName = req.file.filename
-        const book = req.body        
-        const newBook = new Book(
-            book.title,
-            book.description,
-            book.authors,
-            book.favorite,
-            book.fileCover,
-            fileName,
-            path
-        )
+router.post('/book/create', booksUploader.single('book'), async (req, res) => {
+    const fileBook = req.file ? req.file.path : ''
+    const fileName = req.file ? req.file.filename : fileBook.split('/')[1]
+    console.log(fileBook, fileName)
+    const {title, description, authors, favorite} = req.body
+    const newBook = new Books({
+            title,
+            description,
+            authors,
+            favorite,
+            fileBook,
+            fileName
+        })
 
-        store.books.push(newBook)
-        res.redirect('/books')
-
-        return true
+    try {
+        await newBook.save()
+        res.redirect(`/books`)
+    } catch(e) {
+        console.log(e)
+        res.status(500).json({error: 500, message: 'Server error'})
     }
-
-    res.json({
-        error: 'newBook'
-    })
 })
 
-router.get('/books/:id/download', (req, res) => {
+router.get('/books/:id/download', async (req, res) => {
     const {id} = req.params
-    const book = store.books.find(i => i.id === id)
-    
-    res.download(book.fileBook)
-})
-
-router.get('/books/update/:id', (req, res) => {
-    const {id} = req.params
-    const book = store.books.find(i => i.id === id)
-    res.render('books/update', {
-        title: 'Редактировать книгу',
-        book: book
-    })
-})
-
-router.post('/books/update/:id', booksUploader.single('book'), (req, res) => {
-    const {id} = req.params
-    const idx = store.books.findIndex(i => i.id === id)
-    fs.unlinkSync(`./${store.books[idx].fileBook}`)
-
-    store.books[idx] = {
-        ...store.books[idx],
-        ...req.body
+    try {
+        const fileName = await Books.findById(id)
+        
+        // res.json(fileName)
+        if (fs.existsSync(fileName.fileBook)) {
+            res.download(fileName.fileBook)
+        }
+    } catch(e) {
+        res.status(500).json({error: 500, message: 'File not found'})
     }
-    
-    res.redirect(`/books/${id}`)
 })
 
-router.delete('/books/:id', (req, res) => {
+router.get('/books/update/:id', async (req, res) => {
     const {id} = req.params
+    
+    try {
+        const book = await Books.findById(id)
+        
+        if (req.file) {
+            fs.unlinkSync(req.file.path)
+        }
 
-    store.books.forEach((item, index) => {
-        if (item.id === id) {
-            store.books.splice(index, 1)
-
-            res.status(201).json('ok')
-        } 
-
-        res.status(404).json('Книга не найдена')
-    })
+        res.render('books/update', {
+            title: 'Редактировать книгу',
+            book: book
+        })
+    } catch(e) {
+        console.log(e)
+        res.status(404).json({code: 404, message: 'Not found'})
+    }
 })
 
-class Book {
-    constructor(
+router.post('/books/update/:id', booksUploader.single('book'), async (req, res) => {
+    const {id} = req.params
+    const fileBook = req.file ? req.file.path : ''
+    const fileName = req.file ? req.file.filename : name.split('/')[1]
+    const {
         title,
         description,
         authors,
         favorite,
-        fileCover,
-        fileName,
-        fileBook,
-        id = uuid()
-    ) {
-        this.id = id || ''
-        this.title = title || ''
-        this.description = description || ''
-        this.authors = authors || ''
-        this.favorite = favorite || ''
-        this.fileCover = fileCover || ''
-        this.fileName = fileName || ''
-        this.fileBook = fileBook || ''
+    } = req.body
+    try {
+        const item = await Books.findById(id)
+        
+        if (fileBook || fileName) {
+            fs.unlinkSync(`./${item.fileBook}`)
+        }
+
+        await Books.findByIdAndUpdate(id, {
+            title,
+            description,
+            authors,
+            favorite,
+            fileBook,
+            fileName
+        })
+        res.redirect(`/books/${id}`)
+    } catch(e) {
+        console.log(e)
+        res.status(404).json({code: 404, message: 'Not found'})
     }
-}
+})
+
+router.post('/book/delete/:id', async (req, res) => {
+    const {id} = req.params
+
+    try {
+        const fileName = await Books.findById(id)
+
+        fs.unlinkSync(`./${fileName.fileBook}`)
+        await Books.deleteOne({_id: id})
+        res.redirect('/books')
+    } catch(e) {
+        console.log(e)
+        res.status(404).json({code: 404, message: 'Not found'})
+    }
+})
+
 
 class User {
     constructor(
