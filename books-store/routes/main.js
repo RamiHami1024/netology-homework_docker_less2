@@ -4,79 +4,33 @@ const booksUploader = require('../middleware/booksUploader')
 const {getData} = require('../middleware/getDataIncrement')
 const fs = require('fs')
 const passport = require('passport')
-const session = require('express-session')
-
-const bodyParser = require('body-parser')
-const jsonParser = bodyParser.json()
-const urlencodeParser = bodyParser.urlencoded({extended: false})
-
 const db = require('../db')
 const Books = require('../model/books')
-const { debug } = require('console')
-const LocalStrategy = require('passport-local').Strategy
 
-const app = express()
-
-const verify = (username, password, done) => {
-    db.users.findByUsername(username, (err, user) => {
-        if (err) {return done(err)}
-        if (!user) {return done(null, false)}
-        if (!db.users.verifyPassword(user, password)) {return done(null, false)}
-
-        return done(null, user)
-    })
-}
-
-passport.serializeUser((user, cb) => {
-  cb(null, user.id)
-})
-
-passport.deserializeUser(async (id, cb) => {
-  await db.users.findById(id, (err, user) => {
-    if (err) return cb(err)
-    cb(null, user)
-  })
-})
-
-const options = {
-  usernameField: "username",
-  passwordField: "password",
-}
-
-passport.use('local', new LocalStrategy(options, verify))
-
-app.use(session({ secret: 'SECRET'}));
-
-app.use(passport.initialize())
-app.use(passport.session())
 
 router.get('/', async (req, res) => {
+    console.log(req._passport, 'asd', req._passport.instance._userProperty)
     res.render('index', {
         title: 'Главная'
     })
 })
 
 router.get('/users/login', (req, res) => {
+    console.log(req._passport, 'asd', req._passport.instance._userProperty)
     res.render('user/form', {title: 'Регистрация', book: {}})
 })
 
 router.post(
     '/users/login',
+    passport.authenticate('local', { failureRedirect: '/' }),
     (req, res) => {
-        // passport.authenticate('local', {failureMessage: true}, function (err, user, info) {
-        //     console.log(err, user, info)
-
-        //     if (!user) {return res.redirect('/users/login')}
-        // })(req, res)
-        console.log(req.body)
-        res.end()
-        // res.redirect('/users/login')
+        console.log(req.user[0].username)
+        res.redirect('/user/me')
     }
 )
 
 router.post(
     '/users/registry', 
-    urlencodeParser,
     (req, res) => {
         const {username, password} = req.body
 
@@ -87,6 +41,18 @@ router.post(
             console.log(error)
             res.status(500).json({ code: 500, message: "Server error" })
         }
+    })
+
+router.get('/user/me', 
+    (req, res, next) => {
+      if (!req.isAuthenticated()) {
+        console.log(req.isAuthenticated())
+        return res.redirect('/users/login')
+      }
+      next()
+    },
+    (req, res) => {
+      res.render('user/profile', {title: 'Профиль', user: req.user})
     })
 
 router.get('/books', async (req, res) => {
