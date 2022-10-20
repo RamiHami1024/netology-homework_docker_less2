@@ -3,24 +3,91 @@ const router = express.Router()
 const booksUploader = require('../middleware/booksUploader')
 const {getData} = require('../middleware/getDataIncrement')
 const fs = require('fs')
-const {v4: uuid} = require('uuid')
-const axios = require('axios')
-const Books = require('../model/books')
-const books = require('../model/books')
+const passport = require('passport')
+const session = require('express-session')
 
-router.get('/', (req, res) => {
+const bodyParser = require('body-parser')
+const jsonParser = bodyParser.json()
+const urlencodeParser = bodyParser.urlencoded({extended: false})
+
+const db = require('../db')
+const Books = require('../model/books')
+const { debug } = require('console')
+const LocalStrategy = require('passport-local').Strategy
+
+const app = express()
+
+const verify = (username, password, done) => {
+    db.users.findByUsername(username, (err, user) => {
+        if (err) {return done(err)}
+        if (!user) {return done(null, false)}
+        if (!db.users.verifyPassword(user, password)) {return done(null, false)}
+
+        return done(null, user)
+    })
+}
+
+passport.serializeUser((user, cb) => {
+  cb(null, user.id)
+})
+
+passport.deserializeUser(async (id, cb) => {
+  await db.users.findById(id, (err, user) => {
+    if (err) return cb(err)
+    cb(null, user)
+  })
+})
+
+const options = {
+  usernameField: "username",
+  passwordField: "password",
+}
+
+passport.use('local', new LocalStrategy(options, verify))
+
+app.use(session({ secret: 'SECRET'}));
+
+app.use(passport.initialize())
+app.use(passport.session())
+
+router.get('/', async (req, res) => {
     res.render('index', {
-        title: 'Главная',
+        title: 'Главная'
     })
 })
 
-router.post('/user/login', (req, res) => {
-    const {mail} = req.body
-    const newUser = new User(store.users.length + 1, mail)
-    store.users.push(newUser)
-
-    res.status(201).json(newUser)
+router.get('/users/login', (req, res) => {
+    res.render('user/form', {title: 'Регистрация', book: {}})
 })
+
+router.post(
+    '/users/login',
+    (req, res) => {
+        // passport.authenticate('local', {failureMessage: true}, function (err, user, info) {
+        //     console.log(err, user, info)
+
+        //     if (!user) {return res.redirect('/users/login')}
+        // })(req, res)
+        console.log(req.body)
+        res.end()
+        // res.redirect('/users/login')
+    }
+)
+
+router.post(
+    '/users/registry', 
+    urlencodeParser,
+    (req, res) => {
+        const {username, password} = req.body
+
+        try {
+            db.users.createUser(username, password)
+            res.redirect('/')
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ code: 500, message: "Server error" })
+        }
+    })
 
 router.get('/books', async (req, res) => {
     try {
@@ -71,7 +138,7 @@ router.get('/book/create', (req, res) => {
 router.post('/book/create', booksUploader.single('book'), async (req, res) => {
     const fileBook = req.file ? req.file.path : ''
     const fileName = req.file ? req.file.filename : fileBook.split('/')[1]
-    console.log(fileBook, fileName)
+    console.log(req)
     const {title, description, authors, favorite} = req.body
     const newBook = new Books({
             title,

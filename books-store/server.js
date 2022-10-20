@@ -7,6 +7,8 @@ require('dotenv').config()
 
 const PORT = process.env.PORT || 3000
 const DB_URL = process.env.DB_URL
+const ADMIN = process.env.ADMIN
+const ADMIN_PASS = process.env.ADMIN_PASS
 
 async function start(PORT, dbUrl) {
     try {
@@ -18,9 +20,10 @@ async function start(PORT, dbUrl) {
     }
 }
 
-app
-    .use('/', api)
-    .use(express.json())
-    .set('view engine', 'ejs')
+
+app.use('/', api)
+app.use(express.json())
+app.use(express.urlencoded({extended: false}));
+app.set('view engine', 'ejs')
 
 start(PORT, DB_URL)
