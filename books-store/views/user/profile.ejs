@@ -1,0 +1,14 @@
+<%- include("../main/header", {title: title} )%>
+<%- include("../main/menu") %>
+
+<div class="jumbotron jumbotron-fluid registry">
+    <div class="container">
+        <h2>Привет, <%= user.username %></h2>
+        <div>
+            <p>Login: <%= user.username %></p>
+            <p>Password: <%= user.password %></p>
+        </div>
+    </div>
+</div>
+
+<%- include("../main/footer") %>

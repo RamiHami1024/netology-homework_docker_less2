@@ -1,0 +1,58 @@
+<%- include("../main/header", {title: title} )%>
+<%- include("../main/menu") %>
+
+<div class="jumbotron jumbotron-fluid registry" style="display: none">
+    <div class="container">
+        <h3>Зарегестрироваться</h3>
+        <form method="POST" class="mt-5" action="/users/registry">
+            <div class="form-group">
+                <label for="inputTitle">Логин</label>
+                <input type="text" name="username" class="form-control" id="username" value="">
+            </div>
+            <div class="form-group">
+                <label for="inputTitle">Пароль</label>
+                <input type="text" name="password" class="form-control" id="password" value="">
+            </div>
+            <div class="form-group text-right ">
+                <button type="submit" class="btn btn-primary">Зарегестрироваться</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="jumbotron jumbotron-fluid login">
+    <div class="container">
+        <h3>Войти</h3>
+        <form method="POST" action="/users/login" class="mt-5">
+            <div class="form-group">
+                <label for="inputTitle">Логин</label>
+                <input type="text" name="username" class="form-control" id="username" value="">
+            </div>
+            <div class="form-group">
+                <label for="inputTitle">Пароль</label>
+                <input type="text" name="password" class="form-control" id="password" value="">
+            </div>
+            <div class="form-group text-right ">
+                <button type="submit" class="btn btn-primary">Войти</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div>
+    <a class="show-reg" href="#">Зарегестрироваться</a> / <a class="show-log" href="#">Войти</a>
+</div>
+
+<script>
+    $(document).ready(() => {
+        $('a').on('click', function () {
+            if ($(this).attr('class') === 'show-log') {
+                $('.registry').css('display', 'none')
+                $('.login').css('display', 'block')
+            } else {
+                $('.login').css('display', 'none')
+                $('.registry').css('display', 'block')
+            }
+        })
+    })
+</script>
+
+<%- include("../main/footer") %>
