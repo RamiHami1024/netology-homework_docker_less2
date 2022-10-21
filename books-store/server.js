@@ -25,9 +25,9 @@ async function start(PORT, dbUrl) {
 
 const verify = (username, password, done) => {
     db.users.findByUsername(username, (err, user) => {
-        if (err) {return done(err)}
-        if (!user) {return done(null, false)}
-        if (!db.users.verifyPassword(user, password)) {console.log('here'); return done(null, false)}
+        if (err) return done(err)
+        if (!user) return done(null, false)
+        if (!db.users.verifyPassword(user, password)) return done(null, false)
 
         return done(null, user)
     })
@@ -39,13 +39,11 @@ const options = {
 }
 
 passport.serializeUser((user, cb) => {
-    console.log(user[0].id)
     cb(null, user[0].id)
 })
 
 passport.deserializeUser(async (id, cb) => {
   await db.users.findById(id, (err, user) => {
-    console.log(user)
     if (err) return cb(err)
     cb(null, user)
   })

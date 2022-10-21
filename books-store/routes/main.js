@@ -9,14 +9,12 @@ const Books = require('../model/books')
 
 
 router.get('/', async (req, res) => {
-    console.log(req._passport, 'asd', req._passport.instance._userProperty)
     res.render('index', {
         title: 'Главная'
     })
 })
 
 router.get('/users/login', (req, res) => {
-    console.log(req._passport, 'asd', req._passport.instance._userProperty)
     res.render('user/form', {title: 'Регистрация', book: {}})
 })
 
@@ -24,7 +22,6 @@ router.post(
     '/users/login',
     passport.authenticate('local', { failureRedirect: '/' }),
     (req, res) => {
-        console.log(req.user[0].username)
         res.redirect('/user/me')
     }
 )
@@ -46,7 +43,6 @@ router.post(
 router.get('/user/me', 
     (req, res, next) => {
       if (!req.isAuthenticated()) {
-        console.log(req.isAuthenticated())
         return res.redirect('/users/login')
       }
       next()
@@ -104,7 +100,6 @@ router.get('/book/create', (req, res) => {
 router.post('/book/create', booksUploader.single('book'), async (req, res) => {
     const fileBook = req.file ? req.file.path : ''
     const fileName = req.file ? req.file.filename : fileBook.split('/')[1]
-    console.log(req)
     const {title, description, authors, favorite} = req.body
     const newBook = new Books({
             title,
