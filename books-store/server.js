@@ -7,17 +7,26 @@ const app = express();
 require('dotenv').config()
 const LocalStrategy = require('passport-local').Strategy
 const db = require('./db')
+const http = require('http')
+const socketIO = require('socket.io')
+const server = http.Server(app)
+const io = socketIO(server)
+const socketHandler = require('./handlers/socket')
 
 const PORT = process.env.PORT || 3000
 const DB_URL = process.env.DB_URL
 const ADMIN = process.env.ADMIN
 const ADMIN_PASS = process.env.ADMIN_PASS
 
+io.on('connection', (socket) => {
+  socketHandler(socket)
+})
+
 async function start(PORT, dbUrl) {
     try {
         await mongoose.connect(dbUrl)
         console.log(mongoose.connection.readyState);
-        app.listen(PORT)
+        server.listen(PORT)
     } catch(e) {
         throw Error(e)
     }

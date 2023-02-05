@@ -1,0 +1,44 @@
+<div>
+    <div class="comments-container" style="margin-bottom: 10px">
+        <h3>Комментарии</h3>
+        <div class="comments-wrapper"></div>
+    </div>
+    <div class="comments-form">
+        <h3>Отправить комментарий</h3>
+        <form id="comment-form">
+            <div style="display: flex; flex-direction: column;">
+                <label for="name">Имя:</label>
+                <input type="text" id="name" name="name" style="margin-bottom: 5px">
+                <label for="comment">Комментарий:</label>
+                <input type="text" id="comment" name="comment" style="margin-bottom: 5px">
+            </div>
+            <button id="submit">Отправить</button>
+        </form>
+        <script>
+            const roomName = location.pathname.split('/').pop()
+            const socket = io.connect('/', {query: `roomName=${roomName}`})
+            const button = document.querySelector("#submit")
+            const form = document.querySelector("#comment-form")
+            const name = document.querySelector("#name")
+            const comment = document.querySelector("#comment")
+            const container = document.querySelector(".comments-container")
+
+            socket.on('message-to-room', (msg) => {
+                console.log(msg)
+                const div = `
+                    <div>Имя: ${msg.name}<div/>
+                    <div>Комментарий: ${msg.comment}<div/>
+                `
+                container.insertAdjacentHTML('beforeend', div)
+            })
+
+            button.addEventListener("click", (e) => {
+                e.preventDefault()
+                socket.emit('message-to-room', {
+                    name: name.value,
+                    comment: comment.value
+                })
+            })
+        </script>
+    </div>
+</div>
